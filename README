@@ -1,0 +1,20 @@
+WSG - WGET Sitemap Genereator - version 0.1
+
+Wget Sitemap generator is a small web application that automatically 
+builds a sitemap of a website given the url. It's written in PHP (5.3) and 
+Javascript 
+
+WSG works with wget (as you might understand from the name). Wget must 
+be installed on the sistem running the application (wget tested version is
+1.12 built on darwin10.5.0)
+
+Copyright (C) 2012 SickDevelopers
+License GPLv3+: GNU GPL version 3 or later
+http://www.gnu.org/licenses/gpl.html.
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+
+
+Originally written by Oscar Chinellato <oscar.chinellato@sickdevelopers.com>
+Currently maintained by Oscar Chinellato <oscar.chinellato@sickdevelopers.com> 
+Please send every question and bug reports to <oscar.chinellato@sickdevelopers.com>
