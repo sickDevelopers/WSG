@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>WSG - WGET Sitemap Generator</title>
+		
+		<link href='http://fonts.googleapis.com/css?family=Annie+Use+Your+Telescope|Bangers' rel='stylesheet' type='text/css'>
+		<style>
+			/*
+				font-family: 'Annie Use Your Telescope', cursive;
+				font-family: 'Bangers', cursive;
+			*/
+			* {
+				margin: 0px;
+				padding: 0px;
+			}
+			body {
+				font-family: 'Annie Use Your Telescope', cursive;
+			}
+			a {
+				text-decoration: none;
+				color: #5A98C1;
+			}
+			#logo {
+				margin: 50px auto 40px auto;
+			}
+			#logo h1 {
+				font-size: 70px;
+				line-height: 50px;
+				font-family: 'Bangers', cursive;
+			}
+			#logo span {
+				font-family: 'Annie Use Your Telescope', cursive;
+			}
+			#page-wrapper {
+				margin : 0px auto;
+				text-align: center;
+			}
+			#scan-form {
+				margin: 0px auto 40px auto;
+			}
+			input[name="websiteUrl"] {
+				padding: 5px;
+				font-size: 18px;
+				width: 300px;
+				color: #777;
+			}
+			button#generate {
+				font-size: 18px;
+				padding: 5px;
+			}
+			#slider-wrapper {
+				width: 100%;
+				height: 100%;
+				overflow: hidden;
+			}
+			#central-slider {
+				width: 9999px;
+			}
+			#log-wrapper {
+				width: 49%;
+				float: left;
+			}
+			#log-container {
+				width: 800px;
+				margin: 20px auto;
+				overflow: scroll;
+				
+				border: 1px solid #ddd;
+				padding: 5px;
+			}
+			#log-play {
+				font-family: 'Annie Use Your Telescope', cursive;
+				font-size: 10px;
+				float: right;
+			}
+			#log-code {
+				text-align: left;
+				display: block;
+				margin-top: 20px;
+				font-size: 12px;
+				font-family: 'Monaco', cursive;
+				border: 1px solid #eee;
+				padding: 4px;
+			}
+			#log-code p {
+				display: none;
+			}
+			#xml-wrapper {
+				width: 49%;
+				float: left;
+			}
+			#xml-container {
+				width: 800px;
+				margin: 20px auto;
+				overflow: scroll;
+				border: 1px solid #ddd;
+				padding: 5px;
+			}
+			#xml-code {
+				text-align: left;
+				display: block;
+				margin-top: 20px;
+				font-size: 12px;
+				font-family: 'Monaco', cursive;
+				border: 1px solid #eee;
+				padding: 4px;
+			}
+			#page-num-container {
+				padding: 3px 5px 4px 5px;
+				display: block;
+				float: left;
+				margin: -15px 0px 0px 10px;
+				border: 1px solid #eee;
+				font-size: 20px;
+				border-bottom: none;
+				font-family: 'Annie Use Your Telescope', cursive;
+			}
+			#gif-loader {
+				display: none;
+			}
+			#url-content {
+				display: none;
+			}
+			.build-link {
+				padding: 3px 5px 4px 5px;
+				display: block;
+				float: right;
+				margin: -15px 10px 0px 0px;
+				border: 1px solid #eee;
+				font-size: 20px;
+				border-bottom: none;
+				background: #d00;
+				color: #fff;
+				font-family: 'Annie Use Your Telescope', cursive;
+			}
+			.back-to-log {
+				padding: 3px 5px 4px 5px;
+				display: block;
+				float: left;
+				margin: -15px 0px 0px 10px;
+				border: 1px solid #eee;
+				font-size: 20px;
+				border-bottom: none;
+				background: #d00;
+				color: #fff;
+				font-family: 'Annie Use Your Telescope', cursive;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="page-wrapper">
+			<div id="logo">
+				<h1>WSG</h1>
+				<span>WGET Sitemap Generator <small> (v 0.1)</small></span>
+			</div>
+		
+			<form id="scan-form" action="#">
+				http://<input type="text" width="400px" name="websiteUrl" />
+				<button id="generate">Scan website</button>
+			</form>
+		
+			<div id="slider-wrapper">
+				<div id="central-slider">
+				
+					<div id="log-wrapper">
+						<div id="log-container">
+							<a href="#" id="log-play">log wget process</a>
+							<h2>LOG</h2>
+							<div id="page-num-container"><span id="page-num">0</span> <img id="gif-loader" src="img/ajax-loader.gif" /></div>
+				
+							<div id="log-code">
+								<ul>
+						
+								</ul>
+							</div>
+						</div>
+					</div>
+				
+					<div id="xml-wrapper">
+						<div id="xml-container">
+							<h2>XML</h2>		
+							<a href="#" class="back-to-log">Back to Log</a>		
+							<div id="xml-code">
+								<pre></pre>
+							</div>
+					
+						</div>
+					</div>
+				
+				</div>
+			</div>
+		
+		</div>
+		
+		<script id="log-fragment" type="text/x-handlebars-template">
+			<li>
+				<input type="checkbox" checked name="{{nodeName}}">
+				<span>{{{logText}}}</span>
+			</li>
+		</script>
+		
+		<script src="handlebars-1.0.0.beta.6.js"></script>
+		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+		<script type="text/javascript">
+		
+			var sitemap = Object();
+		
+			$(document).ready(function() {
+				
+				var busy = false,
+					host = '',
+					pollingInterval = 500,
+					pollingTimeout = 0,
+					mappedPagesNum = 0,
+					logging = false,
+					logFileSize = 0,
+					logSource = $('#log-fragment').html(),
+					logTemplate = Handlebars.compile(logSource);
+					
+					
+				$('#central-slider').css({
+					width : window.screen.width * 2
+				})
+				
+				$('#log-play').on('click', function(e) {
+					e.preventDefault();
+					if(!logging) {
+						logPolling();
+						$(this).text('stop wget logging');
+						logging = true;
+					} else {
+						clearInterval(pollingInterval);
+						$(this).text('log wget logging');
+						logging = false;
+					}
+				});
+				
+				$('#generate').on('click', function(e) {
+					// prevent default event
+					e.preventDefault();
+					// setto l'host
+					host = $('input[name=websiteUrl]').val();
+					$('#log-container h2').text($('#log-container h2').text() + ' - ' + host);
+					
+					
+					// hide the button
+					$(this).attr('disabled', true);
+					
+					
+					var self = $(this);
+					self.fadeOut();
+					// inizia richiesta asincrona per generare l'XML
+					$.post('WSGgenerate.php', $('#scan-form').serialize(), 
+						function(data) {
+							logPolling();
+							clearInterval(pollingInterval);
+							$('#gif-loader').fadeOut(400);
+							
+							showSitemapGenerate();
+							
+						}
+					);
+					logPolling();
+					$('input[name=websiteUrl]').attr('disabled', 'true');
+					$('#gif-loader').fadeIn(400);
+				})
+				
+				$('#scan-form').on('submit', function(e) {
+					e.preventDefault();
+					return false;
+				})
+				
+				$('.back-to-log').on('click', function() {
+					$('#central-slider').animate({
+						marginLeft: 0
+					});
+				});
+				
+				
+				function logPolling() {
+					// funzione per il polling vero e proprio
+					var innerPolling = function() {
+						
+						$.post('output.txt',{}, 
+							function(data) {
+								
+								
+								if(data.length > logFileSize) { // il contenuto del file log è aumentato
+									// ultima parte caricata
+									var fragment = data.substr(logFileSize),
+										datePattern = /--[0-9]*-[0-9]*-[0-9]*\s[0-9]*:[0-9]*:[0-9]*--\s\s.*/ig,
+										dateLine;
+									while((dateLine = datePattern.exec(fragment)) != null) {
+										
+										var dateAndPath = dateLine[0].split('http://' + host);
+										
+										var path = dateAndPath[1];
+										if(!sitemap['http://' + host + path]) {
+											
+											sitemap['http://' + host + path] = {
+												'active' : true
+											};
+											
+											
+										
+											var context = {
+												'nodeName' : path,
+												'logText' : dateAndPath[0] + dateAndPath[1]
+											};
+											$('#page-num').text(++mappedPagesNum);
+											// compilazione handlebars
+											var newLog = logTemplate(context);
+											$('#log-code').prepend(newLog)
+														.find(':first-child').slideDown(400)
+															.find('input[type=checkbox]').on('change', function() {
+																var value = sitemap['http://' + host + $(this).attr('name')]['active'];
+																sitemap['http://' + host + $(this).attr('name')]['active'] = !value;
+															});
+										} else {
+											
+										}
+									}
+									
+									
+									logFileSize = data.length;
+								}
+							} 
+						);
+						
+						
+					};
+					
+					pollingInterval = setInterval(innerPolling, pollingInterval);
+				};
+				
+				function showSitemapGenerate() {
+					
+					
+					var buildLink = $('<a></a>', {
+						href : '#',
+						'class' : 'build-link',
+						text : "Build XML Sitemap"
+					}).on('click', function(e) {
+						e.preventDefault();
+						
+						
+						var filteredSitemap = new Object();
+						$.each(sitemap, function(key, value) {
+							//console.log('Key: ' + key + "----- status : " + sitemap[key]['active']);
+							if(sitemap[key]['active'] == true) {
+								filteredSitemap[key] = value;
+							}
+						});
+						
+						
+						//console.log(filteredSitemap);
+						
+						$.post('WSGgenerate.php', {
+								'sitemap' : filteredSitemap
+							},
+							function(data) {
+								$('#xml-code pre').text(data);
+								$('#central-slider').animate({
+									marginLeft: -window.screen.width
+								});
+							});
+					});
+					
+					
+					$('#page-num-container').after(buildLink);
+					
+				} 
+				
+			});
+		</script>
+	</body>
+
+</html>
+
+
+		
